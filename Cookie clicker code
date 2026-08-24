@@ -1,0 +1,1656 @@
+(() => {
+    "use strict";
+
+    // ==========================================
+    // JEFFY HUB - CLEAN SINGLE GUI
+    // ==========================================
+
+    if (window.JeffyHub) {
+        try {
+            window.JeffyHub.destroy();
+        } catch (e) {}
+    }
+
+    const CONFIG = {
+        key: "jeffyisgoat",
+
+        // Put a royalty-free/permissioned MP3 URL here.
+        // Example:
+        // musicURL: "https://example.com/calm-music.mp3"
+        musicURL: "",
+
+        keys: {
+            menu: "p",
+            autoClick: "c",
+            free: "f",
+            autoBuy: "b",
+            heavenly: "h"
+        }
+    };
+
+    const state = {
+        autoClick: false,
+        free: false,
+        autoBuy: false,
+        heavenly: false,
+        destroyed: false,
+        waitingForKey: null
+    };
+
+    // ==========================================
+    // REMOVE ANY OLD JEFFY HUB
+    // ==========================================
+
+    document.querySelectorAll(
+        "#jeffyHub,#jeffyKeyOverlay,#jeffyStyles,#jeffyMusic"
+    ).forEach(el => el.remove());
+
+    // ==========================================
+    // STYLES
+    // ==========================================
+
+    const style = document.createElement("style");
+    style.id = "jeffyStyles";
+
+    style.textContent = `
+        @import url(
+            'https://fonts.googleapis.com/css2?family=UnifrakturCook:wght@700&family=Rajdhani:wght@500;600;700&display=swap'
+        );
+
+        #jeffyKeyOverlay {
+            position: fixed;
+            inset: 0;
+
+            z-index: 999999999;
+
+            display: flex;
+            align-items: center;
+            justify-content: center;
+
+            background:
+                linear-gradient(
+                    rgba(0,0,0,.78),
+                    rgba(8,0,12,.88)
+                ),
+                url("https://gifdb.com/images/high/emo-sad-anime-boy-f50spxut94yn7c9o.gif");
+
+            background-size: cover;
+            background-position: center;
+
+            backdrop-filter: blur(7px);
+
+            font-family: Rajdhani, Arial, sans-serif;
+        }
+
+        #jeffyKeyBox {
+            width: 430px;
+
+            padding: 38px;
+
+            box-sizing: border-box;
+
+            text-align: center;
+
+            background: rgba(5,5,8,.62);
+
+            border: 1px solid rgba(220,80,255,.7);
+
+            border-radius: 25px;
+
+            box-shadow:
+                0 0 25px rgba(180,40,255,.65),
+                0 0 80px rgba(130,20,180,.35);
+
+            backdrop-filter: blur(12px);
+
+            color: white;
+        }
+
+        .jeffyKeySkull {
+            font-size: 60px;
+            margin-bottom: 5px;
+        }
+
+        .jeffyKeyTitle {
+            font-family: UnifrakturCook, serif;
+
+            font-size: 53px;
+
+            color: #df7cff;
+
+            text-shadow:
+                0 0 8px #a020f0,
+                0 0 25px #a020f0;
+        }
+
+        .jeffyKeySub {
+            color: #999;
+
+            font-size: 17px;
+
+            margin: 8px 0 25px;
+        }
+
+        #jeffyKeyInput {
+            width: 100%;
+
+            box-sizing: border-box;
+
+            padding: 15px;
+
+            border-radius: 12px;
+
+            border: 1px solid #59236d;
+
+            outline: none;
+
+            background: rgba(0,0,0,.65);
+
+            color: white;
+
+            text-align: center;
+
+            font-size: 17px;
+        }
+
+        #jeffyUnlock {
+            width: 100%;
+
+            margin-top: 14px;
+
+            padding: 15px;
+
+            border: 1px solid #d34dff;
+
+            border-radius: 12px;
+
+            background:
+                linear-gradient(
+                    90deg,
+                    #5b1675,
+                    #b51cff
+                );
+
+            color: white;
+
+            font-weight: bold;
+
+            font-size: 17px;
+
+            cursor: pointer;
+        }
+
+        #jeffyKeyStatus {
+            min-height: 22px;
+
+            margin-top: 13px;
+
+            font-weight: bold;
+        }
+
+
+        /* =====================================
+           MAIN HUB
+           ===================================== */
+
+        #jeffyHub {
+            position: fixed;
+
+            width: 620px;
+            height: 620px;
+
+            left: 50%;
+            top: 50%;
+
+            transform: translate(-50%, -50%);
+
+            z-index: 999999998;
+
+            overflow: hidden;
+
+            color: white;
+
+            font-family:
+                Rajdhani,
+                Arial,
+                sans-serif;
+
+            border:
+                1px solid rgba(215,80,255,.75);
+
+            border-radius: 26px;
+
+            background:
+                linear-gradient(
+                    rgba(0,0,0,.40),
+                    rgba(8,0,14,.57)
+                ),
+                url("https://gifdb.com/images/high/emo-sad-anime-boy-f50spxut94yn7c9o.gif");
+
+            background-size: cover;
+            background-position: center;
+
+            box-shadow:
+                0 0 25px rgba(190,40,255,.65),
+                0 0 80px rgba(120,20,170,.38);
+
+            backdrop-filter: blur(8px);
+        }
+
+        #jeffyHub.hidden {
+            display: none !important;
+        }
+
+        /* NOT DRAGGABLE */
+
+        #jeffyHeader {
+            height: 86px;
+
+            box-sizing: border-box;
+
+            display: flex;
+
+            align-items: center;
+
+            justify-content: space-between;
+
+            padding: 0 24px;
+
+            background: rgba(0,0,0,.40);
+
+            border-bottom:
+                1px solid rgba(210,80,255,.42);
+
+            user-select: none;
+
+            cursor: default;
+        }
+
+        #jeffyTitle {
+            font-family:
+                UnifrakturCook,
+                serif;
+
+            font-size: 44px;
+
+            color: #e18aff;
+
+            text-shadow:
+                0 0 8px #a020f0,
+                0 0 22px #a020f0;
+        }
+
+        #jeffyClose {
+            width: 44px;
+            height: 44px;
+
+            border:
+                1px solid rgba(255,60,100,.7);
+
+            border-radius: 12px;
+
+            background: rgba(20,0,5,.65);
+
+            color: #ff5575;
+
+            font-size: 28px;
+
+            cursor: pointer;
+        }
+
+        #jeffyTabs {
+            display: flex;
+
+            gap: 9px;
+
+            padding: 11px;
+
+            background: rgba(0,0,0,.34);
+
+            border-bottom:
+                1px solid rgba(190,60,240,.28);
+        }
+
+        .jeffyTab {
+            flex: 1;
+
+            padding: 13px;
+
+            border:
+                1px solid rgba(150,50,190,.42);
+
+            border-radius: 12px;
+
+            background: rgba(0,0,0,.43);
+
+            color: #888;
+
+            font-size: 16px;
+
+            font-weight: bold;
+
+            cursor: pointer;
+        }
+
+        .jeffyTab.active {
+            color: white;
+
+            border-color: #dc59ff;
+
+            background:
+                linear-gradient(
+                    135deg,
+                    rgba(75,10,95,.75),
+                    rgba(150,25,180,.55)
+                );
+
+            box-shadow:
+                0 0 15px rgba(210,60,255,.4);
+        }
+
+        #jeffyContent {
+            height: 450px;
+
+            box-sizing: border-box;
+
+            padding: 18px;
+
+            overflow-y: auto;
+
+            background: rgba(0,0,0,.13);
+        }
+
+        #jeffyContent::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        #jeffyContent::-webkit-scrollbar-thumb {
+            background: #72218b;
+            border-radius: 10px;
+        }
+
+        .jeffyFeature {
+            display: flex;
+
+            align-items: center;
+
+            justify-content: space-between;
+
+            gap: 15px;
+
+            padding: 16px;
+
+            margin-bottom: 11px;
+
+            border:
+                1px solid rgba(190,60,230,.32);
+
+            border-radius: 15px;
+
+            background: rgba(4,4,7,.52);
+
+            backdrop-filter: blur(5px);
+        }
+
+        .jeffyFeature:hover {
+            border-color:
+                rgba(220,80,255,.75);
+
+            box-shadow:
+                0 0 15px rgba(200,50,255,.22);
+        }
+
+        .jeffyFeature b {
+            display: block;
+
+            font-size: 19px;
+        }
+
+        .jeffyFeature small {
+            display: block;
+
+            margin-top: 4px;
+
+            color: #929292;
+
+            font-size: 13px;
+        }
+
+        .jeffyToggle {
+            min-width: 70px;
+
+            padding: 10px;
+
+            border:
+                1px solid #444;
+
+            border-radius: 20px;
+
+            background: rgba(10,10,10,.8);
+
+            color: #777;
+
+            font-weight: bold;
+
+            cursor: pointer;
+        }
+
+        .jeffyToggle.on {
+            color: white;
+
+            border-color: #df55ff;
+
+            background:
+                linear-gradient(
+                    90deg,
+                    #711f91,
+                    #c41eff
+                );
+
+            box-shadow:
+                0 0 13px rgba(210,50,255,.45);
+        }
+
+        .jeffyDestroy {
+            padding: 10px 15px;
+
+            border:
+                1px solid #ff315d;
+
+            border-radius: 10px;
+
+            background: rgba(30,0,8,.75);
+
+            color: #ff5475;
+
+            font-weight: bold;
+
+            cursor: pointer;
+        }
+
+        .jeffySetting {
+            display: flex;
+
+            align-items: center;
+
+            justify-content: space-between;
+
+            padding: 16px;
+
+            margin-bottom: 11px;
+
+            background: rgba(4,4,7,.54);
+
+            border:
+                1px solid rgba(180,60,220,.32);
+
+            border-radius: 14px;
+
+            font-size: 17px;
+        }
+
+        .jeffyKeyButton {
+            min-width: 72px;
+
+            padding: 10px 14px;
+
+            border:
+                1px solid #8c32aa;
+
+            border-radius: 10px;
+
+            background: rgba(0,0,0,.55);
+
+            color: #df82ff;
+
+            font-weight: bold;
+
+            cursor: pointer;
+        }
+
+        #jeffyListening {
+            padding: 13px;
+
+            margin-top: 12px;
+
+            border-radius: 10px;
+
+            background: rgba(0,0,0,.5);
+
+            color: #999;
+
+            text-align: center;
+        }
+
+        #jeffyFooter {
+            position: absolute;
+
+            bottom: 0;
+
+            left: 0;
+
+            width: 100%;
+
+            box-sizing: border-box;
+
+            padding: 12px;
+
+            text-align: center;
+
+            background: rgba(0,0,0,.48);
+
+            border-top:
+                1px solid rgba(190,60,230,.3);
+
+            color: #888;
+
+            font-size: 13px;
+        }
+
+        .jeffyMusicButton {
+            width: 100%;
+
+            padding: 13px;
+
+            margin-bottom: 12px;
+
+            border:
+                1px solid #8c32aa;
+
+            border-radius: 12px;
+
+            background: rgba(30,5,40,.65);
+
+            color: #e58cff;
+
+            font-weight: bold;
+
+            cursor: pointer;
+        }
+    `;
+
+    document.head.appendChild(style);
+
+    // ==========================================
+    // KEY SCREEN
+    // ==========================================
+
+    const overlay = document.createElement("div");
+    overlay.id = "jeffyKeyOverlay";
+
+    overlay.innerHTML = `
+        <div id="jeffyKeyBox">
+
+            <div class="jeffyKeySkull">
+                ☠️
+            </div>
+
+            <div class="jeffyKeyTitle">
+                JEFFY HUB
+            </div>
+
+            <div class="jeffyKeySub">
+                ENTER ACCESS KEY
+            </div>
+
+            <input
+                id="jeffyKeyInput"
+                type="password"
+                autocomplete="off"
+                placeholder="ACCESS KEY"
+            >
+
+            <button id="jeffyUnlock">
+                UNLOCK
+            </button>
+
+            <div id="jeffyKeyStatus"></div>
+
+        </div>
+    `;
+
+    document.body.appendChild(overlay);
+
+    const keyInput =
+        document.getElementById("jeffyKeyInput");
+
+    const unlockButton =
+        document.getElementById("jeffyUnlock");
+
+    const keyStatus =
+        document.getElementById("jeffyKeyStatus");
+
+    function unlock() {
+        if (keyInput.value !== CONFIG.key) {
+
+            keyStatus.style.color = "#ff456b";
+            keyStatus.textContent = "✕ WRONG KEY";
+
+            keyInput.value = "";
+
+            return;
+        }
+
+        keyStatus.style.color = "#df7cff";
+        keyStatus.textContent = "✓ ACCESS GRANTED";
+
+        setTimeout(() => {
+            overlay.remove();
+            createHub();
+        }, 350);
+    }
+
+    unlockButton.onclick = unlock;
+
+    keyInput.addEventListener(
+        "keydown",
+        e => {
+            if (e.key === "Enter") {
+                unlock();
+            }
+        }
+    );
+
+    keyInput.focus();
+
+    // ==========================================
+    // CREATE HUB
+    // ==========================================
+
+    function createHub() {
+
+        if (state.destroyed) return;
+
+        const hub =
+            document.createElement("div");
+
+        hub.id = "jeffyHub";
+
+        hub.innerHTML = `
+            <div id="jeffyHeader">
+
+                <div id="jeffyTitle">
+                    JEFFY HUB
+                </div>
+
+                <button id="jeffyClose">
+                    ×
+                </button>
+
+            </div>
+
+            <div id="jeffyTabs">
+
+                <button
+                    class="jeffyTab active"
+                    data-tab="farm"
+                >
+                    🌑 FARM
+                </button>
+
+                <button
+                    class="jeffyTab"
+                    data-tab="settings"
+                >
+                    ⚙ SETTINGS
+                </button>
+
+            </div>
+
+            <div id="jeffyContent">
+
+                <div id="jeffyFarm">
+
+                    <div class="jeffyFeature">
+                        <div>
+                            <b>🍪 OP Auto Click</b>
+                            <small>
+                                Extremely fast cookie clicking
+                            </small>
+                        </div>
+
+                        <button
+                            class="jeffyToggle"
+                            id="jeffyAutoClick"
+                        >
+                            OFF
+                        </button>
+                    </div>
+
+
+                    <div class="jeffyFeature">
+                        <div>
+                            <b>💰 0 Cost Buildings</b>
+                            <small>
+                                Makes every loaded building free
+                            </small>
+                        </div>
+
+                        <button
+                            class="jeffyToggle"
+                            id="jeffyFree"
+                        >
+                            OFF
+                        </button>
+                    </div>
+
+
+                    <div class="jeffyFeature">
+                        <div>
+                            <b>🛒 Auto Buy</b>
+                            <small>
+                                Automatically buys buildings
+                            </small>
+                        </div>
+
+                        <button
+                            class="jeffyToggle"
+                            id="jeffyAutoBuy"
+                        >
+                            OFF
+                        </button>
+                    </div>
+
+
+                    <div class="jeffyFeature">
+                        <div>
+                            <b>♾️ Infinite Heavenly Chips</b>
+                            <small>
+                                Sets Heavenly Chips to Infinity
+                            </small>
+                        </div>
+
+                        <button
+                            class="jeffyToggle"
+                            id="jeffyHeavenly"
+                        >
+                            OFF
+                        </button>
+                    </div>
+
+
+                    <div class="jeffyFeature">
+                        <div>
+                            <b>⭐ Cursor Level 10,000</b>
+                            <small>
+                                Sets Cursor level to 10000
+                            </small>
+                        </div>
+
+                        <button
+                            class="jeffyToggle on"
+                            id="jeffyCursor"
+                        >
+                            ON
+                        </button>
+                    </div>
+
+
+                    <div class="jeffyFeature">
+                        <div>
+                            <b>🏷️ Bakery Name</b>
+                            <small>
+                                Jeffy's Bakery
+                            </small>
+                        </div>
+                    </div>
+
+
+                    <div class="jeffyFeature">
+                        <div>
+                            <b>🗑 Destroy Hub</b>
+                            <small>
+                                Turns everything off and removes the hub
+                            </small>
+                        </div>
+
+                        <button
+                            class="jeffyDestroy"
+                            id="jeffyDestroy"
+                        >
+                            DESTROY
+                        </button>
+                    </div>
+
+                </div>
+
+
+                <div id="jeffySettings"
+                     style="display:none">
+
+                    <div class="jeffySetting">
+                        <span>Menu Key</span>
+
+                        <button
+                            class="jeffyKeyButton"
+                            data-setting="menu"
+                        >
+                            P
+                        </button>
+                    </div>
+
+
+                    <div class="jeffySetting">
+                        <span>Auto Click Key</span>
+
+                        <button
+                            class="jeffyKeyButton"
+                            data-setting="autoClick"
+                        >
+                            C
+                        </button>
+                    </div>
+
+
+                    <div class="jeffySetting">
+                        <span>0 Cost Key</span>
+
+                        <button
+                            class="jeffyKeyButton"
+                            data-setting="free"
+                        >
+                            F
+                        </button>
+                    </div>
+
+
+                    <div class="jeffySetting">
+                        <span>Auto Buy Key</span>
+
+                        <button
+                            class="jeffyKeyButton"
+                            data-setting="autoBuy"
+                        >
+                            B
+                        </button>
+                    </div>
+
+
+                    <div class="jeffySetting">
+                        <span>Heavenly Chips Key</span>
+
+                        <button
+                            class="jeffyKeyButton"
+                            data-setting="heavenly"
+                        >
+                            H
+                        </button>
+                    </div>
+
+
+                    <button
+                        class="jeffyMusicButton"
+                        id="jeffyMusic"
+                    >
+                        🎵 Calm Music: OFF
+                    </button>
+
+
+                    <div id="jeffyListening">
+                        Click a key above to change its keybind.
+                    </div>
+
+                </div>
+
+            </div>
+
+            <div id="jeffyFooter">
+                Press P to hide/show the hub
+            </div>
+        `;
+
+        document.body.appendChild(hub);
+
+        // ==========================================
+        // HELPER
+        // ==========================================
+
+        function toggleButton(id, enabled) {
+
+            const button =
+                document.getElementById(id);
+
+            if (!button) return;
+
+            button.textContent =
+                enabled ? "ON" : "OFF";
+
+            button.classList.toggle(
+                "on",
+                enabled
+            );
+        }
+
+        // ==========================================
+        // 0 COST
+        // ==========================================
+
+        function makeFree() {
+
+            if (!window.Game) return;
+
+            if (!Game.ObjectsById) return;
+
+            for (
+                let i = 0;
+                i < Game.ObjectsById.length;
+                i++
+            ) {
+
+                const building =
+                    Game.ObjectsById[i];
+
+                if (!building) continue;
+
+                building.price = 0;
+                building.basePrice = 0;
+                building.priceL = 0;
+            }
+
+            if (
+                typeof Game.RefreshStore ===
+                "function"
+            ) {
+                Game.RefreshStore();
+            }
+        }
+
+        // ==========================================
+        // AUTO BUY
+        // ==========================================
+
+        function autoBuy() {
+
+            if (!window.Game) return;
+
+            if (!Game.ObjectsById) return;
+
+            for (
+                let i = 0;
+                i < Game.ObjectsById.length;
+                i++
+            ) {
+
+                const building =
+                    Game.ObjectsById[i];
+
+                if (
+                    building &&
+                    typeof building.buy ===
+                    "function"
+                ) {
+                    try {
+                        building.buy();
+                    } catch (e) {}
+                }
+            }
+        }
+
+        // ==========================================
+        // INFINITE HEAVENLY CHIPS
+        // ==========================================
+
+        function infiniteHeavenlyChips() {
+
+            if (!window.Game) return;
+
+            Game.heavenlyChips = Infinity;
+            Game.heavenlyChipsSpent = 0;
+
+            if (!Game.prestige) {
+                Game.prestige = {};
+            }
+
+            Game.prestige["Heavenly chips"] =
+                Infinity;
+
+            Game.prestige.ready = 1;
+
+            Game.recalculateGains = 1;
+
+            if (
+                typeof Game.CalculateGains ===
+                "function"
+            ) {
+                try {
+                    Game.CalculateGains();
+                } catch (e) {}
+            }
+
+            const display =
+                document.querySelector(
+                    "#ascendHCs .heavenly"
+                );
+
+            if (display) {
+                display.textContent = "∞";
+            }
+        }
+
+        // ==========================================
+        // CURSOR LEVEL
+        // ==========================================
+
+        function cursorLevel() {
+
+            if (!window.Game) return;
+
+            if (
+                !Game.ObjectsById ||
+                !Game.ObjectsById[0]
+            ) return;
+
+            Game.ObjectsById[0].level = 10000;
+
+            const display =
+                document.getElementById(
+                    "productLevel0"
+                );
+
+            if (display) {
+                display.textContent =
+                    "lvl 10000";
+            }
+        }
+
+        // ==========================================
+        // BAKERY NAME
+        // ==========================================
+
+        function bakeryName() {
+
+            const name =
+                document.getElementById(
+                    "bakeryName"
+                );
+
+            if (name) {
+                name.textContent =
+                    "Jeffy's Bakery";
+            }
+        }
+
+        // ==========================================
+        // AUTO CLICK
+        // ==========================================
+
+        let clickLoop = null;
+
+        function startAutoClick() {
+
+            if (clickLoop) return;
+
+            clickLoop = setInterval(() => {
+
+                if (!state.autoClick)
+                    return;
+
+                const cookie =
+                    document.getElementById(
+                        "bigCookie"
+                    );
+
+                if (!cookie) return;
+
+                for (
+                    let i = 0;
+                    i < 30;
+                    i++
+                ) {
+                    try {
+                        cookie.click();
+                    } catch (e) {}
+                }
+
+            }, 1);
+        }
+
+        startAutoClick();
+
+        // ==========================================
+        // BUTTONS
+        // ==========================================
+
+        document.getElementById(
+            "jeffyAutoClick"
+        ).onclick = () => {
+
+            state.autoClick =
+                !state.autoClick;
+
+            toggleButton(
+                "jeffyAutoClick",
+                state.autoClick
+            );
+        };
+
+
+        document.getElementById(
+            "jeffyFree"
+        ).onclick = () => {
+
+            state.free =
+                !state.free;
+
+            toggleButton(
+                "jeffyFree",
+                state.free
+            );
+
+            if (state.free) {
+                makeFree();
+            }
+        };
+
+
+        document.getElementById(
+            "jeffyAutoBuy"
+        ).onclick = () => {
+
+            state.autoBuy =
+                !state.autoBuy;
+
+            toggleButton(
+                "jeffyAutoBuy",
+                state.autoBuy
+            );
+        };
+
+
+        document.getElementById(
+            "jeffyHeavenly"
+        ).onclick = () => {
+
+            state.heavenly =
+                !state.heavenly;
+
+            toggleButton(
+                "jeffyHeavenly",
+                state.heavenly
+            );
+
+            if (state.heavenly) {
+                infiniteHeavenlyChips();
+            }
+        };
+
+
+        document.getElementById(
+            "jeffyCursor"
+        ).onclick = () => {
+            cursorLevel();
+        };
+
+
+        document.getElementById(
+            "jeffyClose"
+        ).onclick = () => {
+
+            hub.classList.add("hidden");
+        };
+
+
+        // ==========================================
+        // DESTROY
+        // ==========================================
+
+        document.getElementById(
+            "jeffyDestroy"
+        ).onclick = () => {
+
+            state.destroyed = true;
+
+            state.autoClick = false;
+            state.free = false;
+            state.autoBuy = false;
+            state.heavenly = false;
+
+            if (clickLoop) {
+                clearInterval(clickLoop);
+                clickLoop = null;
+            }
+
+            hub.remove();
+
+            style.remove();
+
+            if (window.JeffyHub) {
+                window.JeffyHub.destroyed =
+                    true;
+            }
+        };
+
+
+        // ==========================================
+        // TABS
+        // ==========================================
+
+        const farm =
+            document.getElementById(
+                "jeffyFarm"
+            );
+
+        const settings =
+            document.getElementById(
+                "jeffySettings"
+            );
+
+        hub.querySelectorAll(
+            ".jeffyTab"
+        ).forEach(tab => {
+
+            tab.onclick = () => {
+
+                hub.querySelectorAll(
+                    ".jeffyTab"
+                ).forEach(t => {
+                    t.classList.remove(
+                        "active"
+                    );
+                });
+
+                tab.classList.add(
+                    "active"
+                );
+
+                const isFarm =
+                    tab.dataset.tab ===
+                    "farm";
+
+                farm.style.display =
+                    isFarm
+                        ? "block"
+                        : "none";
+
+                settings.style.display =
+                    isFarm
+                        ? "none"
+                        : "block";
+            };
+        });
+
+
+        // ==========================================
+        // KEYBINDS
+        // ==========================================
+
+        hub.querySelectorAll(
+            ".jeffyKeyButton"
+        ).forEach(button => {
+
+            const setting =
+                button.dataset.setting;
+
+            button.textContent =
+                CONFIG.keys[setting]
+                    .toUpperCase();
+
+            button.onclick = () => {
+
+                state.waitingForKey =
+                    setting;
+
+                button.textContent =
+                    "...";
+
+                document.getElementById(
+                    "jeffyListening"
+                ).textContent =
+                    "Press a key now...";
+            };
+        });
+
+
+        // ==========================================
+        // MUSIC
+        // ==========================================
+
+        let music = null;
+        let musicPlaying = false;
+
+        if (CONFIG.musicURL) {
+
+            music =
+                new Audio(
+                    CONFIG.musicURL
+                );
+
+            music.loop = true;
+
+            music.volume = 0.15;
+
+            music.id = "jeffyMusic";
+
+            music.preload = "auto";
+
+        }
+
+        document.getElementById(
+            "jeffyMusic"
+        ).onclick = () => {
+
+            if (!music) {
+
+                alert(
+                    "Add your royalty-free music URL to CONFIG.musicURL first."
+                );
+
+                return;
+            }
+
+            if (musicPlaying) {
+
+                music.pause();
+
+                musicPlaying = false;
+
+                document.getElementById(
+                    "jeffyMusic"
+                ).textContent =
+                    "🎵 Calm Music: OFF";
+
+            } else {
+
+                music.play().then(() => {
+
+                    musicPlaying = true;
+
+                    document.getElementById(
+                        "jeffyMusic"
+                    ).textContent =
+                        "🎵 Calm Music: ON";
+
+                }).catch(() => {
+
+                    alert(
+                        "Click the page once and try again."
+                    );
+                });
+            }
+        };
+
+
+        // ==========================================
+        // KEYBOARD
+        // ==========================================
+
+        document.addEventListener(
+            "keydown",
+            e => {
+
+                if (state.destroyed)
+                    return;
+
+                if (
+                    e.target &&
+                    (
+                        e.target.tagName ===
+                        "INPUT" ||
+                        e.target.tagName ===
+                        "TEXTAREA"
+                    )
+                ) {
+                    return;
+                }
+
+                const key =
+                    e.key.toLowerCase();
+
+
+                // Changing keybind
+                if (state.waitingForKey) {
+
+                    const setting =
+                        state.waitingForKey;
+
+                    CONFIG.keys[setting] =
+                        key;
+
+                    const button =
+                        hub.querySelector(
+                            `[data-setting="${setting}"]`
+                        );
+
+                    if (button) {
+                        button.textContent =
+                            key.toUpperCase();
+                    }
+
+                    state.waitingForKey =
+                        null;
+
+                    document.getElementById(
+                        "jeffyListening"
+                    ).textContent =
+                        "Key changed to " +
+                        key.toUpperCase();
+
+                    e.preventDefault();
+
+                    return;
+                }
+
+
+                // MENU
+                if (
+                    key === CONFIG.keys.menu
+                ) {
+
+                    hub.classList.toggle(
+                        "hidden"
+                    );
+
+                    e.preventDefault();
+                }
+
+
+                // AUTO CLICK
+                if (
+                    key ===
+                    CONFIG.keys.autoClick
+                ) {
+
+                    state.autoClick =
+                        !state.autoClick;
+
+                    toggleButton(
+                        "jeffyAutoClick",
+                        state.autoClick
+                    );
+                }
+
+
+                // FREE
+                if (
+                    key === CONFIG.keys.free
+                ) {
+
+                    state.free =
+                        !state.free;
+
+                    toggleButton(
+                        "jeffyFree",
+                        state.free
+                    );
+
+                    if (state.free) {
+                        makeFree();
+                    }
+                }
+
+
+                // AUTO BUY
+                if (
+                    key ===
+                    CONFIG.keys.autoBuy
+                ) {
+
+                    state.autoBuy =
+                        !state.autoBuy;
+
+                    toggleButton(
+                        "jeffyAutoBuy",
+                        state.autoBuy
+                    );
+                }
+
+
+                // HEAVENLY
+                if (
+                    key ===
+                    CONFIG.keys.heavenly
+                ) {
+
+                    state.heavenly =
+                        !state.heavenly;
+
+                    toggleButton(
+                        "jeffyHeavenly",
+                        state.heavenly
+                    );
+
+                    if (state.heavenly) {
+                        infiniteHeavenlyChips();
+                    }
+                }
+
+            }
+        );
+
+
+        // ==========================================
+        // BACKGROUND / GAME SOUND MUTE
+        // ==========================================
+
+        function muteGameAudio() {
+
+            document
+                .querySelectorAll(
+                    "audio,video"
+                )
+                .forEach(media => {
+
+                    media.muted = true;
+                    media.volume = 0;
+
+                });
+
+            if (window.Game) {
+
+                try {
+                    if (
+                        Game.volume !==
+                        undefined
+                    ) {
+                        Game.volume = 0;
+                    }
+
+                    if (
+                        Game.volumeMusic !==
+                        undefined
+                    ) {
+                        Game.volumeMusic = 0;
+                    }
+
+                    if (
+                        Game.volumeSFX !==
+                        undefined
+                    ) {
+                        Game.volumeSFX = 0;
+                    }
+                } catch (e) {}
+            }
+        }
+
+
+        // ==========================================
+        // GAME LOOP
+        // ==========================================
+
+        const gameLoop =
+            setInterval(() => {
+
+                if (state.destroyed) {
+                    clearInterval(gameLoop);
+                    return;
+                }
+
+                muteGameAudio();
+
+                bakeryName();
+
+                cursorLevel();
+
+                if (state.free) {
+                    makeFree();
+                }
+
+                if (state.autoBuy) {
+                    autoBuy();
+                }
+
+                if (state.heavenly) {
+                    infiniteHeavenlyChips();
+                }
+
+            }, 100);
+
+
+        // ==========================================
+        // COOKIE GIF
+        // ==========================================
+
+        const cookie =
+            document.getElementById(
+                "bigCookie"
+            );
+
+        if (cookie) {
+
+            cookie.style.backgroundImage =
+                "url('https://i.kym-cdn.com/photos/images/newsfeed/002/955/803/56d.gif')";
+
+            cookie.style.backgroundSize =
+                "cover";
+
+            cookie.style.backgroundPosition =
+                "center";
+
+            cookie.style.backgroundRepeat =
+                "no-repeat";
+
+            cookie.style.borderRadius =
+                "50%";
+        }
+
+
+        // ==========================================
+        // PUBLIC CONTROL
+        // ==========================================
+
+        window.JeffyHub = {
+
+            destroyed: false,
+
+            destroy() {
+
+                state.destroyed = true;
+
+                if (clickLoop) {
+                    clearInterval(
+                        clickLoop
+                    );
+                }
+
+                hub.remove();
+
+                style.remove();
+
+                if (overlay) {
+                    overlay.remove();
+                }
+            }
+        };
+    }
+
+})();
